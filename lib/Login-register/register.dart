@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class Foro extends StatelessWidget {
-  const Foro({super.key});
+class Register extends StatelessWidget {
+  const Register({super.key});
     @override
   Widget build(BuildContext context) {
     // Controladores para los campos de texto

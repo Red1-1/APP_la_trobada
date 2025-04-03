@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
-import './camara.dart';
-import 'galeria.dart';
-import 'reproductor.dart';
+import './Xat/xat.dart';
+import 'Foro/foro.dart';
+import 'Scanner/scanner.dart';
+import 'usuari/usuari.dart';
+import 'coleccio/coleccio.dart';
+import 'Login-register/login.dart';
+import 'Login-register/register.dart';
+
 
 final Map<String, WidgetBuilder> appRoutes = {
-  '/': (context) => CameraPage(), // Página Cámara
-  '/galeria': (context) => GaleriaPage(), // Página Galería
-  '/reproductor': (context) => ReproductorPage(), // Página Reproductor
+  '/': (context) => Login(),
+  '/register': (context) => Register(), // Página de registro
+  '/foro': (context) => Foro(), // Página Cámara
+  '/usuari': (context) => Usuari(), // Página Galería
+  '/coleccio': (context) => Coleccio(),
+  '/Scanner':(context) => Scanner(),
+  '/Xat':(context) => Xat(),// Página Reproductor
 };

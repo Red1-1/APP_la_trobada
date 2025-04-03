@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
-class Foro extends StatelessWidget {
-  const Foro({super.key});
-    @override
+class Login extends StatelessWidget {
+  const Login({super.key});
+
+  @override
   Widget build(BuildContext context) {
     // Controladores para los campos de texto
     final TextEditingController emailController = TextEditingController();

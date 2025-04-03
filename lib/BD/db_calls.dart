@@ -3,7 +3,6 @@ import 'dart:convert';
 
 Future<List<dynamic>> fetchData() async {
   final response = await http.get(Uri.parse('http://10.100.0.78:5000/api/data'));
-  
   if (response.statusCode == 200) {
     return json.decode(response.body)['data'];
   } else {
