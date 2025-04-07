@@ -64,13 +64,23 @@ def register():
         if cnx.is_connected():
             with cnx.cursor() as cursor:
                 # Primero verificamos si ya existe un usuario con ese nombre o correo
-                cursor.execute("SELECT id FROM usuari WHERE nom_usuari = %s OR correu = %s", 
-                             (usuari, correu))
+                cursor.execute("SELECT id FROM usuari WHERE correu = %s", 
+                             (correu,))
                 existing_user = cursor.fetchone()
                 
                 if existing_user:
                     return jsonify({
-                        'error': 'Ja existeix un usuari amb aquest nom o correu electrònic',
+                        'error': 'Ja existeix un correu electrònic igual',
+                        'status': 'error'
+                    }), 409  # 409 Conflict es el código adecuado para recursos que ya existen
+                
+                cursor.execute("SELECT id FROM usuari WHERE nom_usuari = %s", 
+                             (usuari, ))
+                existing_user = cursor.fetchone()
+                
+                if existing_user:
+                    return jsonify({
+                        'error': 'Ja existeix un usuari amb aquest nom',
                         'status': 'error'
                     }), 409  # 409 Conflict es el código adecuado para recursos que ya existen
                 
@@ -106,10 +116,3 @@ def databaseconnection(): #function to connect to the database
         else:
             print(err)  #if there is other error rather than the 2 above it will directly print the error
             cnx.close() #closes the conncetion
-try:
-    cnx = databaseconnection()
-    if cnx.is_connected(): #checks if the connection is stablished
-        print("Connected to database")
-except Exception as e:
-    print(e)#if the connection is stablished it prints this message
-    

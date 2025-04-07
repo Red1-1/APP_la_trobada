@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.example.la_trobada"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "26.3.11579264"
+    ndkVersion = "27.2.12479018"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
