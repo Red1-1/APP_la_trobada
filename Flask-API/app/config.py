@@ -4,3 +4,4 @@ class Config:
     MYSQL_PASSWORD = ''
     MYSQL_DB = 'la_trobada'
     MYSQL_CURSORCLASS = 'DictCursor'
+    

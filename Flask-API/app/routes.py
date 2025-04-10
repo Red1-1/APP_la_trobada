@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 import mysql.connector #imports the library that is needed to conect to a mysql database
 from mysql.connector import errorcode  # Importamos mysql desde el módulo app
 import bcrypt 
+from mtgsdk import Card
 
 api = Blueprint('api', __name__, url_prefix='/api')
 
@@ -29,10 +30,10 @@ def login():
                 # Verificamos la contraseña hasheada
                 if bcrypt.checkpw(password, user['contrasenya'].encode('utf-8')):
                     # Contraseña correcta - retornamos éxito (sin datos sensibles)
-                    user_data = {
+                    result = {
                         'status': 'success'
                     }
-                    return jsonify(user_data)
+                    return jsonify(result)
                 else:
                     return jsonify({'error': 'Contrasenya incorrecta', 'status': 'error'}), 401
     except mysql.connector.Error as err:
@@ -101,6 +102,45 @@ def register():
             cnx.close()
 
 
+@api.route('/coleccio', methods=['POST'])
+def crear_coleccio():
+    print("Creando colección...")
+
+@api.route('/carta/web', methods=['POST'])
+def trobar_carta_web():
+    data = request.get_json()
+    if not data or 'nom' not in data:
+        return jsonify({'error': 'Falta el nombre de la carta', 'status': 'error'}), 400
+    
+    # Obtenemos todas las cartas que coinciden exactamente con el nombre
+    cards = Card.where(name=f'!"{data["nom"]}"').all()  # ¡Nota el uso de comillas y el signo de exclamación!
+    
+    if not cards:
+        return jsonify({'error': 'No se puede encontrar ninguna carta con este nombre exacto', 'status': 'error'}), 404
+    
+    # Filtramos adicionalmente por si acaso (doble verificación)
+    exact_match_cards = [card for card in cards if card.name.lower() == data['nom'].lower()]
+    
+    if not exact_match_cards:
+        return jsonify({'error': 'No hay coincidencia exacta para este nombre', 'status': 'error'}), 404
+    
+    return jsonify([
+        {
+            'id': card.id,
+            'nom': card.name,
+            'imatge': card.image_url,
+            'expansio': card.set
+        } for card in exact_match_cards
+    ]), 200
+    
+    
+@api.route('/carta/coleccio', methods=['POST'])
+def afegir_carta_coleccio():
+    data = request.get_json()
+    if not data or 'id_carta' not in data or 'nom_col' not in data:
+        return jsonify({'error': 'Falta el id de la carta o el nom d\'usuari', 'status': 'error'}), 400
+    
+    
 
 def databaseconnection(): #function to connect to the database
     try:

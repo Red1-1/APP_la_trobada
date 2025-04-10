@@ -17,5 +17,5 @@ def create_app():
     # Importar rutas después de crear app para evitar circular imports
     from app import routes
     app.register_blueprint(routes.api)
-    
+    app.config['SECRET_KEY'] = 'nil_albert'
     return app
