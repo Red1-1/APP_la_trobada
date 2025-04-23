@@ -176,9 +176,8 @@ def mostrar_coleccions():
                 id_user = cursor.fetchone()
                 user_id = id_user['id']
                 if user_id:
-                    cursor.execute("SELECT nombre FROM coleccio WHERE id_user=%s",(user_id,))
+                    cursor.execute("SELECT nombre, id FROM coleccio WHERE id_user=%s",(user_id,))
                     coleccions = cursor.fetchall()
-                    
                     if coleccions:
                         return jsonify(coleccions), 200
                     else:
@@ -207,47 +206,23 @@ def mostrar_coleccio():
             
 @api.route('/coleccio/eliminar', methods=['POST'])
 def eliminar_coleccio():
-    try:
-        data = request.get_json()
-        if not data or 'usr' not in data or 'nom_col' not in data:
-            return jsonify({'status': 'error', 'message': 'Parámetros faltantes'}), 400
-
-        cnx = databaseconnection()
-        if not cnx.is_connected():
-            return jsonify({'status': 'error', 'message': 'Error de conexión a BD'}), 500
-
+    data = request.get_json()
+    if not data or 'usr' not in data or 'nom_col' not in data:
+        return jsonify({'error': 'Falta el nom d\'usuari o el nom de la col·lecció', 'status': 'error'}), 400
+    cnx = databaseconnection()
+    usr = data['usr']
+    id = data['id']
+    if cnx.is_connected():
         with cnx.cursor(dictionary=True) as cursor:
-            # 1. Obtener ID de usuario (consumiendo todos los resultados)
-            cursor.execute("SELECT id FROM usuari WHERE nom_usuari = %s", (data['usr'],))
-            usuario = cursor.fetchone()  # Esto consume el resultado
-            if not usuario:
-                return jsonify({'status': 'error', 'message': 'Usuario no existe'}), 404
-
-            # 2. Buscar colección (consumiendo todos los resultados)
-            cursor.execute(
-                "SELECT id FROM coleccio WHERE id_user = %s AND nombre = %s",
-                (usuario['id'], data['nom_col'])
-            )
-            coleccion = cursor.fetchone()  # Esto consume el resultado
-            
-            if not coleccion:
-                return jsonify({'status': 'error', 'message': 'Colección no encontrada'}), 404
-
-            # 3. Eliminar por ID exacto
-            cursor.execute("DELETE FROM coleccio WHERE id = %s", (coleccion['id'],))
-            
-            if cursor.rowcount == 1:
+            # Verificamos si la colección ya existe
+            cursor.execute("SELECT id FROM usuari WHERE nom_usuari= %s", (usr,))
+            id_user = cursor.fetchone()
+            if id_user:
+                cursor.execute("DELETE FROM coleccio WHERE id= %s", (id, ))
                 cnx.commit()
-                return jsonify({'status': 'success', 'message': 'Colección eliminada'}), 200
+                return jsonify({'message': 'Col·lecció creada correctament', 'status': 'success'}), 201
             else:
-                cnx.rollback()
-                return jsonify({'status': 'error', 'message': 'No se pudo eliminar'}), 500
-
-    except Exception as e:
-        cnx.rollback() if 'cnx' in locals() else None
-        return jsonify({'status': 'error', 'message': f'Error del servidor: {str(e)}'}), 500
-    finally:
-        cnx.close() if 'cnx' in locals() else None
+                return jsonify({'error': 'el ususari no existeix', 'status': 'error'}), 409
             
 def databaseconnection(): #function to connect to the database
     try:

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'register.dart'; // Asegúrate de que esta ruta es correcta
+import '../coleccio/coleccio.dart';
 
 class Login extends StatelessWidget {
   const Login({super.key});
@@ -20,48 +21,47 @@ class Login extends StatelessWidget {
         return;
       }
 
-      // URL de tu API Flask (ajusta según tu configuración)
       const String apiUrl = 'http://10.100.0.78:5000/api/login';
       
       try {
-        // Crear el cuerpo de la petición
         final Map<String, dynamic> requestBody = {
           'usuari': emailController.text,
           'contrasenya': passwordController.text,
         };
 
-        // Realizar la petición POST
         final response = await http.post(
           Uri.parse(apiUrl),
           headers: {'Content-Type': 'application/json'},
           body: json.encode(requestBody),
         );
 
-        // Procesar la respuesta
+        print('Response status: ${response.statusCode}'); // Debug
+        print('Response body: ${response.body}'); // Debug
+
         if (response.statusCode == 200) {
-          // Login exitoso
           final responseData = json.decode(response.body);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Bienvenido ${responseData['status']}')),
           );
+
+          Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => Coleccio()),
+          );
           
-          // Navegar a otra pantalla después del login exitoso
-          // Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomePage()));
         } else {
-          // Error en el login
           final errorData = json.decode(response.body);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(errorData['message'] ?? 'Error en el login')),
           );
         }
       } catch (e) {
-        // Error de conexión
+        print('Error: $e'); // Debug
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error de conexión: ${e.toString()}')),
         );
       }
     }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Inicio de Sesión'),
