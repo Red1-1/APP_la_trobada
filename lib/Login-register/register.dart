@@ -7,85 +7,86 @@ class Register extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Controladors pels camps del formulari
     final TextEditingController usernameController = TextEditingController();
     final TextEditingController emailController = TextEditingController();
     final TextEditingController passwordController = TextEditingController();
     final TextEditingController confirmPasswordController = TextEditingController();
 
-    // Función para realizar el registro
+    // Funció per registrar l'usuari
     Future<void> _registerUser() async {
-      // Validación de campos vacíos
+      // Validació de camps buits
       if (usernameController.text.isEmpty || 
           emailController.text.isEmpty || 
           passwordController.text.isEmpty || 
           confirmPasswordController.text.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Por favor, complete todos los campos')),
+          const SnackBar(content: Text('Si us plau, omple tots els camps')),
         );
         return;
       }
 
-      // Validación de contraseñas coincidentes
+      // Validació de contrasenyes coincidents
       if (passwordController.text != confirmPasswordController.text) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Las contraseñas no coinciden')),
+          const SnackBar(content: Text('Les contrasenyes no coincideixen')),
         );
         return;
       }
 
-      // Validación básica de email
+      // Validació bàsica d'email
       if (!emailController.text.contains('@')) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Por favor ingrese un email válido')),
+          const SnackBar(content: Text('Si us plau introdueix un email vàlid')),
         );
         return;
       }
 
-      // URL de tu API Flask (ajusta según tu configuración)
-      const String apiUrl = 'http://10.100.0.78:5000/api/register';
+      // URL de l'API Flask (ajusta segons la teva configuració)
+      const String apiUrl = 'http://10.100.3.25:5000/api/register';
       
       try {
-        // Crear el cuerpo de la petición
+        // Crear el cos de la petició
         final Map<String, dynamic> requestBody = {
           'nom_usuari': usernameController.text,
           'correu': emailController.text,
           'contrasenya': passwordController.text,
         };
 
-        // Realizar la petición POST
+        // Fer la petició POST
         final response = await http.post(
           Uri.parse(apiUrl),
           headers: {'Content-Type': 'application/json'},
           body: json.encode(requestBody),
         );
 
-        // Procesar la respuesta
-        if (response.statusCode == 201) { // 201 es común para creación exitosa
+        // Processar la resposta
+        if (response.statusCode == 201) { // 201 és comú per creació exitosa
           final responseData = json.decode(response.body);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Registro exitoso: ${responseData['message']}')),
+            SnackBar(content: Text('Registre exitós: ${responseData['message']}')),
           );
           
-          // Navegar de vuelta al login después del registro exitoso
+          // Tornar al login després del registre exitós
           Navigator.pop(context);
         } else {
-          // Error en el registro
+          // Error en el registre
           final errorData = json.decode(response.body);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(errorData['message'] ?? 'Error en el registro')),
+            SnackBar(content: Text(errorData['message'] ?? 'Error en el registre')),
           );
         }
       } catch (e) {
-        // Error de conexión
+        // Error de connexió
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error de conexión: ${e.toString()}')),
+          SnackBar(content: Text('Error de connexió: ${e.toString()}')),
         );
       }
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Registro de Usuario'),
+        title: const Text('Registre d\'Usuari'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -93,11 +94,11 @@ class Register extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Campo de nombre de usuario
+              // Camp de nom d'usuari
               TextField(
                 controller: usernameController,
                 decoration: const InputDecoration(
-                  labelText: 'Nombre de Usuario',
+                  labelText: 'Nom d\'Usuari',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.person),
                 ),
@@ -105,11 +106,11 @@ class Register extends StatelessWidget {
               
               const SizedBox(height: 20),
               
-              // Campo de email
+              // Camp d'email
               TextField(
                 controller: emailController,
                 decoration: const InputDecoration(
-                  labelText: 'Correo Electrónico',
+                  labelText: 'Correu Electrònic',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.email),
                 ),
@@ -118,11 +119,11 @@ class Register extends StatelessWidget {
               
               const SizedBox(height: 20),
               
-              // Campo de contraseña
+              // Camp de contrasenya
               TextField(
                 controller: passwordController,
                 decoration: const InputDecoration(
-                  labelText: 'Contraseña',
+                  labelText: 'Contrasenya',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.lock),
                 ),
@@ -131,11 +132,11 @@ class Register extends StatelessWidget {
               
               const SizedBox(height: 20),
               
-              // Campo de confirmar contraseña
+              // Camp de confirmar contrasenya
               TextField(
                 controller: confirmPasswordController,
                 decoration: const InputDecoration(
-                  labelText: 'Repetir Contraseña',
+                  labelText: 'Repetir Contrasenya',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.lock_outline),
                 ),
@@ -144,7 +145,7 @@ class Register extends StatelessWidget {
               
               const SizedBox(height: 30),
               
-              // Botón de registro
+              // Botó de registre
               ElevatedButton(
                 onPressed: () async {
                   await _registerUser();
@@ -152,17 +153,17 @@ class Register extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 50),
                 ),
-                child: const Text('Registrarse'),
+                child: const Text('Registrar-se'),
               ),
               
               const SizedBox(height: 20),
               
-              // Opción para volver al login
+              // Opció per tornar al login
               TextButton(
                 onPressed: () {
                   Navigator.pop(context);
                 },
-                child: const Text('¿Ya tienes cuenta? Inicia Sesión'),
+                child: const Text('Ja tens compte? Inicia Sessió'),
               ),
             ],
           ),

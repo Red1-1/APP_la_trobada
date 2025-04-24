@@ -8,23 +8,23 @@ class Coleccio extends StatefulWidget {
 }
 
 class _ColeccioState extends State<Coleccio> {
-  int _currentIndex = 1; // Índice para Colección
+  int _currentIndex = 1; // Índex per a Colecció
 
-  // Función para manejar el cambio de pestaña
+  // Funció per canviar de pàgina
   void _onItemTapped(int index) {
-    if (index == _currentIndex) return; // Evitar navegar a la misma pantalla
+    if (index == _currentIndex) return; // Evitar navegar a la mateixa pàgina
     
     setState(() {
       _currentIndex = index;
     });
 
-    // Navegar a la pantalla correspondiente
+    // Navegació entre pàgines
     switch (index) {
       case 0:
         Navigator.pushReplacementNamed(context, '/foro');
         break;
       case 1:
-        // Ya estamos en colección
+        // Ja estem a col·lecció
         break;
       case 2:
         Navigator.pushReplacementNamed(context, '/Scanner');
@@ -40,43 +40,43 @@ class _ColeccioState extends State<Coleccio> {
 
   @override
   Widget build(BuildContext context) {
-    // Datos de ejemplo para la colección
+    // Dades d'exemple per la col·lecció
     final List<Map<String, dynamic>> coleccionItems = [
       {
-        'nombre': 'Moneda Antigua',
-        'imagen': 'assets/coleccion/moneda.jpg',
-        'año': '1890',
-        'valor': '€150'
+        'nom': 'Moneda Antiga',
+        'imatge': 'assets/coleccion/moneda.jpg',
+        'any': '1890',
+        'valor': '150€'
       },
       {
-        'nombre': 'Sello Postal',
-        'imagen': 'assets/coleccion/sello.jpg',
-        'año': '1925',
-        'valor': '€75'
+        'nom': 'Segell Postal',
+        'imatge': 'assets/coleccion/sello.jpg',
+        'any': '1925',
+        'valor': '75€'
       },
       {
-        'nombre': 'Figura de Porcelana',
-        'imagen': 'assets/coleccion/porcelana.jpg',
-        'año': '1850',
-        'valor': '€320'
+        'nom': 'Figura de Porcellana',
+        'imatge': 'assets/coleccion/porcelana.jpg',
+        'any': '1850',
+        'valor': '320€'
       },
       {
-        'nombre': 'Libro Antiguo',
-        'imagen': 'assets/coleccion/libro.jpg',
-        'año': '1789',
-        'valor': '€500'
+        'nom': 'Llibre Antic',
+        'imatge': 'assets/coleccion/libro.jpg',
+        'any': '1789',
+        'valor': '500€'
       },
     ];
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mi Colección'),
+        title: const Text('La Meva Col·lecció'),
         centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
-              // Acción para añadir nuevo ítem
+              // Acció per afegir nou ítem
             },
           ),
         ],
@@ -86,7 +86,7 @@ class _ColeccioState extends State<Coleccio> {
         child: Column(
           children: [
             const Text(
-              'Mi Colección Personal',
+              'La Meva Col·lecció Personal',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -110,7 +110,7 @@ class _ColeccioState extends State<Coleccio> {
                       children: [
                         Expanded(
                           child: Image.asset(
-                            item['imagen'],
+                            item['imatge'],
                             fit: BoxFit.cover,
                             width: double.infinity,
                           ),
@@ -121,15 +121,15 @@ class _ColeccioState extends State<Coleccio> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                item['nombre'],
+                                item['nom'],
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              Text('Año: ${item['año']}'),
-                              Text('Valor estimado: ${item['valor']}'),
+                              Text('Any: ${item['any']}'),
+                              Text('Valor estimat: ${item['valor']}'),
                             ],
                           ),
                         ),
@@ -142,10 +142,10 @@ class _ColeccioState extends State<Coleccio> {
             const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: () {
-                // Acción para ver estadísticas
+                // Acció per veure estadístiques
               },
               icon: const Icon(Icons.analytics),
-              label: const Text('Ver Estadísticas'),
+              label: const Text('Veure Estadístiques'),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 50),
               ),
@@ -155,7 +155,7 @@ class _ColeccioState extends State<Coleccio> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Acción para añadir nuevo ítem
+          // Acció per afegir nou ítem
         },
         child: const Icon(Icons.add),
       ),
@@ -166,23 +166,23 @@ class _ColeccioState extends State<Coleccio> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.forum),
-            label: 'Foro',
+            label: 'Fòrum',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.collections),
-            label: 'Colección',
+            label: 'Col·lecció',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.camera_alt),
-            label: 'Scanner',
+            label: 'Escàner',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.chat),
-            label: 'Chat',
+            label: 'Xat',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
-            label: 'Usuario',
+            label: 'Usuari',
           ),
         ],
         selectedItemColor: Colors.blue,
