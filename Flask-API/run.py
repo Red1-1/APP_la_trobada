@@ -1,5 +1,5 @@
 # Importa la funció 'create_app' del mòdul 'app' (normalment de app.py)
-from app import create_app
+from app import create_app, socketio
 # Crea la instància de l'aplicació Flask
 app = create_app()
 # Si s'executa directament (no importat), inicia el servidor

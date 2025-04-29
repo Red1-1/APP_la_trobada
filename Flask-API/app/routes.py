@@ -1,8 +1,10 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, datetime  # Importa las bibliotecas necesarias de Flask
 import mysql.connector  # Importa la biblioteca necesaria para conectarse a una base de datos MySQL
 from mysql.connector import errorcode  # Importa el módulo de errores de MySQL
 import bcrypt  # Importa la biblioteca para el hashing de contraseñas
 from mtgsdk import Card  # Importa la biblioteca para interactuar con la API de cartas
+from flask_socketio import emit
+from app import socketio  # Importa la instancia de SocketIO
 
 # Crea un Blueprint para la API con un prefijo de URL '/api'
 api = Blueprint('api', __name__, url_prefix='/api')
@@ -277,7 +279,107 @@ def eliminar_coleccio():
                 return jsonify({'message': 'Col·lecció eliminada correctament', 'status': 'success'}), 200
             else:
                 return jsonify({'error': 'el ususari no existeix', 'status': 'error'}), 409
+            
+            
+@api.route('/chat/nuevo', methods=['POST'])
+def crear_conversacion():
+    data = request.get_json()
+    if not data or 'id_usuario1' not in data or 'id_usuario2' not in data:
+        return jsonify({'error': 'Se requieren los IDs de ambos usuarios'}), 400
 
+    try:
+        cnx = databaseconnection()
+        with cnx.cursor() as cursor:
+            # Verificar si ya existe una conversación entre estos usuarios
+            cursor.execute("""
+                SELECT id_conversacion FROM conversaciones 
+                WHERE (id_usuario1 = %s AND id_usuario2 = %s) 
+                OR (id_usuario1 = %s AND id_usuario2 = %s)
+            """, (data['id_usuario1'], data['id_usuario2'], data['id_usuario2'], data['id_usuario1']))
+            
+            if cursor.fetchone():
+                return jsonify({'error': 'Ya existe una conversación entre estos usuarios'}), 409
+
+            # Crear nueva conversación
+            cursor.execute("""
+                INSERT INTO conversaciones (id_usuario1, id_usuario2) 
+                VALUES (%s, %s)
+            """, (data['id_usuario1'], data['id_usuario2']))
+            cnx.commit()
+            
+            # Obtener el ID de la nueva conversación
+            cursor.execute("SELECT LAST_INSERT_ID() AS id_conversacion")
+            id_conversacion = cursor.fetchone()['id_conversacion']
+            
+            return jsonify({
+                'id_conversacion': id_conversacion,
+                'message': 'Conversación creada exitosamente'
+            }), 201
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if 'cnx' in locals() and cnx.is_connected():
+            cnx.close()
+                  
+@api.route('/chat/conversaciones/<int:user_id>', methods=['GET'])
+def get_conversaciones(user_id):
+    """Obtiene todas las conversaciones de un usuario"""
+    try:
+        cnx = databaseconnection()
+        with cnx.cursor(dictionary=True) as cursor:
+            cursor.execute("""
+                SELECT c.id_conversacion, 
+                       CASE 
+                           WHEN c.id_usuario1 = %s THEN u2.nom_usuari
+                           ELSE u1.nom_usuari
+                       END AS nombre_contacto
+                FROM conversaciones c
+                JOIN usuari u1 ON c.id_usuario1 = u1.id
+                JOIN usuari u2 ON c.id_usuario2 = u2.id
+                WHERE c.id_usuario1 = %s OR c.id_usuario2 = %s
+            """, (user_id, user_id, user_id))
+            return jsonify(cursor.fetchall())
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if 'cnx' in locals() and cnx.is_connected():
+            cnx.close()
+
+# Manejo de conexiones WebSocket
+@socketio.on('connect')
+def handle_connect():
+    print(f'Cliente conectado: {request.sid}')
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print(f'Cliente desconectado: {request.sid}')
+@socketio.on('enviar_mensaje')
+def handle_enviar_mensaje(data):
+    try:
+        cnx = databaseconnection()
+        with cnx.cursor() as cursor:
+            # 1. Insertar mensaje en la BD
+            cursor.execute("""
+                INSERT INTO mensajes_privados (id_conversacion, id_remitente, mensaje)
+                VALUES (%s, %s, %s)
+            """, (data['id_conversacion'], data['id_remitente'], data['mensaje']))
+            cnx.commit()
+
+            # 2. Notificar solo a la sala de la conversación (excepto remitente)
+            emit('nuevo_mensaje', {
+                'id_conversacion': data['id_conversacion'],
+                'id_remitente': data['id_remitente'],
+                'mensaje': data['mensaje'],
+                'fecha_envio': datetime.now().isoformat()  # Añade marca de tiempo
+            }, room=data['id_conversacion'], skip_sid=request.sid)  # ¡Clave para chats 1 a 1!
+
+    except Exception as e:
+        emit('error', {'error': str(e)})
+    finally:
+        if 'cnx' in locals() and cnx.is_connected():
+            cnx.close()
+            
 def databaseconnection():  # Función para conectarse a la base de datos
     try:
         # Establece la conexión con la base de datos
