@@ -1,4 +1,5 @@
-from flask import Blueprint, jsonify, request, datetime  # Importa las bibliotecas necesarias de Flask
+from flask import Blueprint, jsonify, request # Importa las bibliotecas necesarias de Flask
+from datetime import datetime 
 import mysql.connector  # Importa la biblioteca necesaria para conectarse a una base de datos MySQL
 from mysql.connector import errorcode  # Importa el módulo de errores de MySQL
 import bcrypt  # Importa la biblioteca para el hashing de contraseñas
@@ -280,6 +281,38 @@ def eliminar_coleccio():
             else:
                 return jsonify({'error': 'el ususari no existeix', 'status': 'error'}), 409
             
+@api.route('/usuarios/buscar', methods=['GET'])
+def buscar_usuarios():
+    search_term = request.args.get('q', '').lower()  # Obtiene el término de búsqueda de los parámetros de la URL
+    
+    if not search_term:
+        return jsonify([])  # Si no hay término de búsqueda, retorna lista vacía
+
+    try:
+        cnx = databaseconnection()
+        if cnx.is_connected():
+            with cnx.cursor(dictionary=True) as cursor:
+                # Busca usuarios cuyo nombre comience con el término de búsqueda (insensible a mayúsculas)
+                query = """
+                    SELECT id, nom_usuari, correu 
+                    FROM usuari 
+                    WHERE LOWER(nom_usuari) LIKE %s 
+                    ORDER BY nom_usuari 
+                    LIMIT 10
+                """
+                cursor.execute(query, (f"{search_term}%",))
+                usuarios = cursor.fetchall()
+                return jsonify(usuarios), 200
+    except mysql.connector.Error as err:
+        print(f"Error de base de datos: {err}")
+        return jsonify({'error': 'Error al buscar usuarios', 'status': 'error'}), 500
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({'error': 'Error inesperado', 'status': 'error'}), 500
+    finally:
+        if 'cnx' in locals() and cnx.is_connected():
+            cnx.close()
+
             
 @api.route('/chat/nuevo', methods=['POST'])
 def crear_conversacion():
