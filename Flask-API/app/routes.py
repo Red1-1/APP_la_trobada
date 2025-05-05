@@ -154,8 +154,6 @@ def crear_coleccio():
             else:
                 return jsonify({'error': 'el ususari no existeix', 'status': 'error'}), 409
 
-  
-
 @api.route('/carta/coleccio', methods=['POST'])
 def afegir_carta_coleccio():
     # Obtiene los datos JSON de la solicitud
@@ -267,7 +265,7 @@ def eliminar_coleccio():
     cnx = databaseconnection()  # Establece la conexión a la base de datos
     usr = data['usr']
     id = data['id']
-    
+    print(usr, id)
     if cnx.is_connected():
         with cnx.cursor(dictionary=True) as cursor:
             # Verifica si el usuario existe
@@ -319,16 +317,26 @@ def crear_conversacion():
     data = request.get_json()
     if not data or 'id_usuario1' not in data or 'id_usuario2' not in data:
         return jsonify({'error': 'Se requieren los IDs de ambos usuarios'}), 400
-
+    
+    usuari1 = data['id_usuario1']
+    usuari2 = data['id_usuario2']
+    
     try:
         cnx = databaseconnection()
-        with cnx.cursor() as cursor:
-            # Verificar si ya existe una conversación entre estos usuarios
+        with cnx.cursor(dictionary=True) as cursor:  # Usar cursor de diccionario
+            cursor.execute("SELECT id FROM usuari WHERE nom_usuari= %s", (usuari1,))
+            id_user = cursor.fetchone()
+            if not id_user:
+                return jsonify({'error': 'Usuario no encontrado'}), 404
+                
+            user_id = id_user['id']
+            
+            # Verificar si ya existe una conversación
             cursor.execute("""
                 SELECT id_conversacion FROM conversaciones 
                 WHERE (id_usuario1 = %s AND id_usuario2 = %s) 
                 OR (id_usuario1 = %s AND id_usuario2 = %s)
-            """, (data['id_usuario1'], data['id_usuario2'], data['id_usuario2'], data['id_usuario1']))
+            """, (user_id, usuari2, usuari2, user_id))
             
             if cursor.fetchone():
                 return jsonify({'error': 'Ya existe una conversación entre estos usuarios'}), 409
@@ -337,7 +345,7 @@ def crear_conversacion():
             cursor.execute("""
                 INSERT INTO conversaciones (id_usuario1, id_usuario2) 
                 VALUES (%s, %s)
-            """, (data['id_usuario1'], data['id_usuario2']))
+            """, (user_id, usuari2))
             cnx.commit()
             
             # Obtener el ID de la nueva conversación
@@ -350,17 +358,22 @@ def crear_conversacion():
             }), 201
 
     except Exception as e:
+        print(f"Error: {e}")
         return jsonify({'error': str(e)}), 500
     finally:
         if 'cnx' in locals() and cnx.is_connected():
             cnx.close()
                   
-@api.route('/chat/conversaciones/<int:user_id>', methods=['GET'])
+@api.route('/chat/conversaciones/<string:user_id>', methods=['GET'])
 def get_conversaciones(user_id):
     """Obtiene todas las conversaciones de un usuario"""
     try:
         cnx = databaseconnection()
         with cnx.cursor(dictionary=True) as cursor:
+            cursor.execute("SELECT id FROM usuari WHERE nom_usuari= %s", (user_id,))
+            id_user = cursor.fetchone()
+            user_id = id_user['id']
+            
             cursor.execute("""
                 SELECT c.id_conversacion, 
                        CASE 
@@ -374,6 +387,7 @@ def get_conversaciones(user_id):
             """, (user_id, user_id, user_id))
             return jsonify(cursor.fetchall())
     except Exception as e:
+        print(f"Error: {e}")
         return jsonify({'error': str(e)}), 500
     finally:
         if 'cnx' in locals() and cnx.is_connected():
@@ -387,6 +401,7 @@ def handle_connect():
 @socketio.on('disconnect')
 def handle_disconnect():
     print(f'Cliente desconectado: {request.sid}')
+    
 @socketio.on('enviar_mensaje')
 def handle_enviar_mensaje(data):
     try:

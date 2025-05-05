@@ -1,21 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'register.dart'; // Importa la pantalla de registre
-import '../coleccio/coleccio.dart'; // Importa la pantalla de la col·lecció
+import 'package:shared_preferences/shared_preferences.dart'; // Añadido
+import 'register.dart';
+import '../coleccio/coleccio.dart';
 
 class Login extends StatelessWidget {
   const Login({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Controladors pels camps del formulari
     final TextEditingController emailController = TextEditingController();
     final TextEditingController passwordController = TextEditingController();
 
-    // Funció per fer login
+    // Función para guardar el usuario en SharedPreferences
+    Future<void> _saveUserData(String username) async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('username', username);
+      // Puedes guardar más datos si necesitas:
+      // await prefs.setString('email', email);
+      // await prefs.setBool('isLogged', true);
+    }
+
     Future<void> _loginUser() async {
-      // Validació de camps buits
       if (emailController.text.isEmpty || passwordController.text.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Si us plau, omple tots els camps')),
@@ -23,45 +30,47 @@ class Login extends StatelessWidget {
         return;
       }
 
-      // URL de l'API de login
       const String apiUrl = 'http://10.100.3.25:5000/api/login';
       
       try {
-        // Preparar dades per enviar
         final Map<String, dynamic> requestBody = {
           'usuari': emailController.text,
           'contrasenya': passwordController.text,
         };
 
-        // Fer petició POST
         final response = await http.post(
           Uri.parse(apiUrl),
           headers: {'Content-Type': 'application/json'},
           body: json.encode(requestBody),
         );
 
-        // Processar resposta
         if (response.statusCode == 200) {
           final responseData = json.decode(response.body);
+          
+          // Guardar el nombre de usuario
+          await _saveUserData(emailController.text); 
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Benvingut ${responseData['status']}')),
           );
 
-          // Navegar a la pantalla principal
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => Coleccio()),
+            MaterialPageRoute(
+              builder: (context) => Coleccio(),
+              // Si Coleccio necesita el usuario, puedes pasarlo como parámetro:
+              // builder: (context) => Coleccio(username: emailController.text),
+            ),
           );
           
         } else {
-          // Mostrar error
           final errorData = json.decode(response.body);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(errorData['message'] ?? 'Error en el login')),
           );
         }
       } catch (e) {
-        print('Error: $e'); // Per depuració
+        print('Error: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error de connexió: ${e.toString()}')),
         );
@@ -77,7 +86,6 @@ class Login extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Camp per l'email
             TextField(
               controller: emailController,
               decoration: const InputDecoration(
@@ -90,7 +98,6 @@ class Login extends StatelessWidget {
             
             const SizedBox(height: 20),
             
-            // Camp per la contrasenya
             TextField(
               controller: passwordController,
               decoration: const InputDecoration(
@@ -103,7 +110,6 @@ class Login extends StatelessWidget {
             
             const SizedBox(height: 30),
             
-            // Botó per fer login
             ElevatedButton(
               onPressed: () async {
                 await _loginUser();
@@ -116,7 +122,6 @@ class Login extends StatelessWidget {
             
             const SizedBox(height: 20),
             
-            // Enllaç per anar al registre
             TextButton(
               onPressed: () {
                 Navigator.push(
