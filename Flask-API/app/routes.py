@@ -1,11 +1,12 @@
-from flask import Blueprint, jsonify, request # Importa las bibliotecas necesarias de Flask
+from flask import Blueprint, jsonify, request, session # Importa las bibliotecas necesarias de Flask
 from datetime import datetime 
 import mysql.connector  # Importa la biblioteca necesaria para conectarse a una base de datos MySQL
 from mysql.connector import errorcode  # Importa el módulo de errores de MySQL
 import bcrypt  # Importa la biblioteca para el hashing de contraseñas
 from mtgsdk import Card  # Importa la biblioteca para interactuar con la API de cartas
 from flask_socketio import emit
-from app import socketio  # Importa la instancia de SocketIO
+from app import socketio # Importa la instancia de SocketIO
+from flask_socketio import join_room, leave_room  # Importa funciones para manejar salas de WebSocket
 
 # Crea un Blueprint para la API con un prefijo de URL '/api'
 api = Blueprint('api', __name__, url_prefix='/api')
@@ -310,8 +311,7 @@ def buscar_usuarios():
     finally:
         if 'cnx' in locals() and cnx.is_connected():
             cnx.close()
-
-            
+  
 @api.route('/chat/nuevo', methods=['POST'])
 def crear_conversacion():
     data = request.get_json()
@@ -385,13 +385,61 @@ def get_conversaciones(user_id):
                 JOIN usuari u2 ON c.id_usuario2 = u2.id
                 WHERE c.id_usuario1 = %s OR c.id_usuario2 = %s
             """, (user_id, user_id, user_id))
-            return jsonify(cursor.fetchall())
+            return jsonify(cursor.fetchall()),200
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({'error': str(e)}), 500
     finally:
         if 'cnx' in locals() and cnx.is_connected():
             cnx.close()
+
+@api.route('/chat/mensajes/<string:conversacion_id>/<string:user>', methods=['GET'])
+def obtener_mensajes(conversacion_id,user):
+    """Obtiene todos los mensajes de una conversación específica"""
+    try:
+        cnx = databaseconnection()
+        with cnx.cursor(dictionary=True) as cursor:
+            cursor.execute("SELECT id FROM usuari WHERE nom_usuari= %s", (conversacion_id,))
+            id_user_conversacion = cursor.fetchone()
+            id_user_conversacion = id_user_conversacion['id']
+            if not id_user_conversacion:
+                return jsonify({'error': 'Usuario no encontrado'}), 404
+            
+            cursor.execute("SELECT id FROM usuari WHERE nom_usuari= %s", (user,))
+            id_user = cursor.fetchone()
+            id_user = id_user['id']
+            
+            if not id_user:
+                return jsonify({'error': 'Usuario no encontrado'}), 404
+            
+            # Obtener mensajes y información del remitente
+            cursor.execute("""
+                SELECT id_conversacion
+                FROM conversaciones
+                WHERE (id_usuario1 = %s AND id_usuario2 = %s)
+                OR (id_usuario1 = %s AND id_usuario2 = %s)
+                GROUP BY id_conversacion
+            """, (id_user, id_user_conversacion, id_user_conversacion, id_user))
+            
+            id_conversacion = cursor.fetchone()
+            
+            cursor.execute("""
+                SELECT id_remitente, mensaje, fecha_envio
+                from mensajes_privados
+                WHERE id_conversacion = %s
+                """,(id_conversacion['id_conversacion'],))
+            mensajes = cursor.fetchall()
+            
+            return jsonify(mensajes), 200
+            
+    except Exception as e:
+        print(f"Error al obtener mensajes: {str(e)}")
+        return jsonify({'error': 'Error al obtener mensajes'}), 500
+    finally:
+        if 'cnx' in locals() and cnx.is_connected():
+            cnx.close()
+
+
 
 # Manejo de conexiones WebSocket
 @socketio.on('connect')
@@ -401,33 +449,103 @@ def handle_connect():
 @socketio.on('disconnect')
 def handle_disconnect():
     print(f'Cliente desconectado: {request.sid}')
+
+@socketio.on('unirse_a_conversacion')
+def handle_join_conversation(data):
+    try:
+        user = data.get('usuario') 
+        id_user = data.get('id_usuario')# usuario actual
+        cnx = databaseconnection()
+        with cnx.cursor(dictionary=True) as cursor:
+            # Obtener ID del usuario actual
+            cursor.execute("SELECT id FROM usuari WHERE nom_usuari= %s", (user,))
+            user_actual = cursor.fetchone()
+            if not user_actual:
+                emit('error', {'error': 'Usuario actual no encontrado'})
+                return
+            
+            id_user_conversacion = user_actual['id']
+              # ID del usuario que se une a 
+            cursor.execute("""
+                SELECT id_conversacion
+                FROM conversaciones
+                WHERE (id_usuario1 = %s AND id_usuario2 = %s)
+                   OR (id_usuario1 = %s AND id_usuario2 = %s)
+                LIMIT 1
+            """, (id_user, id_user_conversacion, id_user_conversacion, id_user))
+
+            result = cursor.fetchone()
     
+            if result:
+                id_conversacion = result['id_conversacion']
+                print(f"Usuario {request.sid} unido a la sala {id_conversacion}")
+                join_room(id_conversacion)
+                emit('unido_a_conversacion', {'id_conversacion': id_conversacion})
+            else:
+                emit('error', {'error': 'Conversación no encontrada'})
+
+    except Exception as e:
+        print(f"Error al unirse a la conversación: {str(e)}")
+        emit('error', {'error': str(e)})
+    finally:
+        if 'cnx' in locals() and cnx.is_connected():
+            cnx.close()
+
+
+@socketio.on('salir_de_conversacion')
+def handle_leave_conversation(data):
+    id_conversacion = data.get('id_conversacion')
+    leave_room(id_conversacion)
+    print(f"Usuario {request.sid} salió de la conversación {id_conversacion}")
+
 @socketio.on('enviar_mensaje')
 def handle_enviar_mensaje(data):
     try:
         cnx = databaseconnection()
         with cnx.cursor() as cursor:
-            # 1. Insertar mensaje en la BD
             cursor.execute("""
                 INSERT INTO mensajes_privados (id_conversacion, id_remitente, mensaje)
                 VALUES (%s, %s, %s)
             """, (data['id_conversacion'], data['id_remitente'], data['mensaje']))
             cnx.commit()
 
-            # 2. Notificar solo a la sala de la conversación (excepto remitente)
             emit('nuevo_mensaje', {
                 'id_conversacion': data['id_conversacion'],
                 'id_remitente': data['id_remitente'],
                 'mensaje': data['mensaje'],
-                'fecha_envio': datetime.now().isoformat()  # Añade marca de tiempo
-            }, room=data['id_conversacion'], skip_sid=request.sid)  # ¡Clave para chats 1 a 1!
+                'fecha_envio': datetime.now().isoformat()
+            }, room=data['id_conversacion'], skip_sid=request.sid)
 
     except Exception as e:
+        print(e)
         emit('error', {'error': str(e)})
     finally:
         if 'cnx' in locals() and cnx.is_connected():
             cnx.close()
+
+
+@api.route('/usuario/id/<string:user>', methods=['GET'])
+def obtener_id_usuario(user):
+    try:
+        cnx = databaseconnection()  # Establece la conexión a la base de datos
+        with cnx.cursor(dictionary=True) as cursor:
+            # Busca el ID del usuario por su nombre
+            cursor.execute("SELECT id FROM usuari WHERE nom_usuari= %s", (user,))
+            user = cursor.fetchone()
             
+            if user:
+                return jsonify({'id': user['id'], 'status': 'success'}), 200
+            else:
+                return jsonify({'error': 'Usuari no trobat', 'status': 'error'}), 404
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({'error': str(e), 'status': 'error'}), 500
+    finally:
+        if 'cnx' in locals() and cnx.is_connected():
+            cnx.close()
+
+
+
 def databaseconnection():  # Función para conectarse a la base de datos
     try:
         # Establece la conexión con la base de datos
