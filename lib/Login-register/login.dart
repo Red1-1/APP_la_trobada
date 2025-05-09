@@ -14,7 +14,7 @@ class Login extends StatelessWidget {
     final TextEditingController passwordController = TextEditingController();
 
     // Función para guardar el usuario en SharedPreferences
-    Future<void> _saveUserData(String username) async {
+    Future<void> saveUserData(String username) async {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('username', username);
       // Puedes guardar más datos si necesitas:
@@ -22,7 +22,7 @@ class Login extends StatelessWidget {
       // await prefs.setBool('isLogged', true);
     }
 
-    Future<void> _loginUser() async {
+    Future<void> loginUser() async {
       if (emailController.text.isEmpty || passwordController.text.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Si us plau, omple tots els camps')),
@@ -48,7 +48,7 @@ class Login extends StatelessWidget {
           final responseData = json.decode(response.body);
           
           // Guardar el nombre de usuario
-          await _saveUserData(emailController.text); 
+          await saveUserData(emailController.text); 
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Benvingut ${responseData['status']}')),
@@ -112,7 +112,7 @@ class Login extends StatelessWidget {
             
             ElevatedButton(
               onPressed: () async {
-                await _loginUser();
+                await loginUser();
               },
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 50),

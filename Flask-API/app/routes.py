@@ -439,8 +439,6 @@ def obtener_mensajes(conversacion_id,user):
         if 'cnx' in locals() and cnx.is_connected():
             cnx.close()
 
-
-
 # Manejo de conexiones WebSocket
 @socketio.on('connect')
 def handle_connect():
@@ -544,9 +542,132 @@ def obtener_id_usuario(user):
         if 'cnx' in locals() and cnx.is_connected():
             cnx.close()
 
+@api.route('/informacion/contrasenya', methods=['POST'])  # Cambiado a POST que es más adecuado
+def cambiar_contrasenya():
+    data = request.get_json()
+    
+    # Validación de datos recibidos
+    if not data or 'usuari' not in data or 'contrasenya' not in data or 'nova_contrasenya' not in data:
+        return jsonify({
+            'error': 'Falta el nom d\'usuari, la contrasenya actual o la nova contrasenya',
+            'status': 'error'
+        }), 400
+    
+    cnx = databaseconnection()  # Establece la conexión a la base de datos
+    usuari = data['usuari']
+    password = data['contrasenya'].encode('utf-8')
+    nova_contrasenya = data['nova_contrasenya']
+        
+    try:
+        if cnx.is_connected():
+            with cnx.cursor(dictionary=True) as cursor:
+                # 1. Verifica si el usuario existe y obtiene su contraseña actual
+                cursor.execute("SELECT id, contrasenya FROM usuari WHERE nom_usuari = %s", (usuari,))
+                usuari_data = cursor.fetchone()
+                
+                if not usuari_data:
+                    return jsonify({
+                        'error': 'Usuari no trobat',
+                        'status': 'error'
+                    }), 404
+                
+                # 2. Verifica que la contraseña actual sea correcta
+                if not bcrypt.checkpw(password, usuari_data['contrasenya'].encode('utf-8')):
+                    return jsonify({
+                        'error': 'Contrasenya actual incorrecta',
+                        'status': 'error'
+                    }), 401
+                
+                # 3. Hashea la nueva contraseña
+                nova_contrasenya_hash = bcrypt.hashpw(nova_contrasenya.encode('utf-8'), bcrypt.gensalt())
+                
+                # 4. Actualiza la contraseña en la base de datos
+                cursor.execute(
+                    "UPDATE usuari SET contrasenya = %s WHERE id = %s",
+                    (nova_contrasenya_hash.decode('utf-8'), usuari_data['id'])
+                )
+                cnx.commit()
+                
+                return jsonify({
+                    'status': 'success',
+                    'message': 'Contrasenya actualitzada correctament'
+                }), 200
+                
+    except Exception as e:
+        print(f"Error: {e}")
+        if cnx.is_connected():
+            cnx.rollback()  # Revertir cambios en caso de error
+        return jsonify({
+            'error': str(e),
+            'status': 'error'
+        }), 500
+    finally:
+        if cnx.is_connected():
+            cnx.close()
 
-
-def databaseconnection():  # Función para conectarse a la base de datos
+@api.route('/informacion/nom', methods=['POST'])  # Cambiado a POST que es más adecuado
+def cambiar_nom():
+    data = request.get_json()
+    
+    # Validación de datos recibidos
+    if not data or 'usuari' not in data or 'contrasenya' not in data or 'nou_nom' not in data:
+        return jsonify({
+            'error': 'Falta el nom d\'usuari, la contrasenya actual o la nova contrasenya',
+            'status': 'error'
+        }), 400
+    
+    cnx = databaseconnection()  # Establece la conexión a la base de datos
+    usuari = data['usuari']
+    password = data['contrasenya'].encode('utf-8')
+    nou_nom = data['nou_nom']
+        
+    try:
+        if cnx.is_connected():
+            with cnx.cursor(dictionary=True) as cursor:
+                # 1. Verifica si el usuario existe y obtiene su contraseña actual
+                cursor.execute("SELECT id, contrasenya FROM usuari WHERE nom_usuari = %s", (usuari,))
+                usuari_data = cursor.fetchone()
+                
+                if not usuari_data:
+                    return jsonify({
+                        'error': 'Usuari no trobat',
+                        'status': 'error'
+                    }), 404
+                
+                # 2. Verifica que la contraseña actual sea correcta
+                if not bcrypt.checkpw(password, usuari_data['contrasenya'].encode('utf-8')):
+                    return jsonify({
+                        'error': 'Contrasenya actual incorrecta',
+                        'status': 'error'
+                    }), 401
+                
+                # 3. Hashea la nueva contraseña
+                
+                # 4. Actualiza la contraseña en la base de datos
+                cursor.execute(
+                    "UPDATE usuari SET nom_usuari = %s WHERE id = %s",
+                    (nou_nom, usuari_data['id'])
+                )
+                cnx.commit()
+                
+                return jsonify({
+                    'status': 'success',
+                    'message': 'Nom actualitzat correctament'
+                }), 200
+                
+    except Exception as e:
+        print(f"Error: {e}")
+        if cnx.is_connected():
+            cnx.rollback()  # Revertir cambios en caso de error
+        return jsonify({
+            'error': str(e),
+            'status': 'error'
+        }), 500
+    finally:
+        if cnx.is_connected():
+            cnx.close()
+    
+def databaseconnection():  # Función para conectarse a la base de datosx
     try:
         # Establece la conexión con la base de datos
         cnx = mysql.connector.connect(user='root', password='', database='la_trobada')

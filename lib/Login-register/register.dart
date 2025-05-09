@@ -14,7 +14,7 @@ class Register extends StatelessWidget {
     final TextEditingController confirmPasswordController = TextEditingController();
 
     // Funció per registrar l'usuari
-    Future<void> _registerUser() async {
+    Future<void> registerUser() async {
       // Validació de camps buits
       if (usernameController.text.isEmpty || 
           emailController.text.isEmpty || 
@@ -148,7 +148,7 @@ class Register extends StatelessWidget {
               // Botó de registre
               ElevatedButton(
                 onPressed: () async {
-                  await _registerUser();
+                  await registerUser();
                 },
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 50),
