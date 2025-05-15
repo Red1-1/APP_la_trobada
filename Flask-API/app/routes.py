@@ -666,6 +666,75 @@ def cambiar_nom():
     finally:
         if cnx.is_connected():
             cnx.close()
+
+@api.route('/foro/nou_missatge', methods=['POST'])  
+def afegir_nou_missatge():
+    data = request.get_json()
+    
+    # Validación de datos recibidos
+    if not data or 'id_user' not in data or 'mensaje' not in data:
+        return jsonify({
+            'error': 'Falta el nom d\'usuari o el missatge',
+            'status': 'error'
+        }), 400
+    id_user = data['id_user']
+    mensaje = data['mensaje']
+    cnx = databaseconnection()
+    try:
+        if cnx.is_connected():
+            with cnx.cursor(dictionary=True) as cursor:     
+                cursor.execute("SELECT id FROM usuari WHERE nom_usuari= %s", (id_user,))
+                id_user = cursor.fetchone()
+                id_user = id_user['id']
+                cursor.execute("INSERT INTO foro(id_user,mensaje) VALUES(%s,%s)", (id_user, mensaje))
+                cnx.commit()
+                return jsonify({
+                    'message': 'Missatge afegit correctament',
+                    'status': 'success'
+                }), 201
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            return jsonify({'error': 'Incorrect user', 'status': 'error'}), 403
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            return jsonify({'error': 'Database does not exist', 'status': 'error'}), 404
+        else:
+            print(f"Error: {err}")
+            return jsonify({'error': str(err), 'status': 'error'}), 500
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({'error': str(e), 'status': 'error'}), 500
+
+@api.route('/foro/mostrar_missatges', methods=['GET'])
+def mostrar_missatges():
+    try:
+        cnx = databaseconnection()
+        with cnx.cursor(dictionary=True) as cursor:
+            # Obtiene todos los mensajes del foro
+            cursor.execute("SELECT id_user, mensaje FROM foro")
+            missatges = cursor.fetchall()
+            for missatge in missatges:
+                # Obtiene el nombre del usuario
+                cursor.execute("SELECT nom_usuari FROM usuari WHERE id = %s", (missatge['id_user'],))
+                user = cursor.fetchone()
+                if user:
+                    missatge['nom_usuari'] = user['nom_usuari']
+                else:
+                    missatge['nom_usuari'] = 'Desconegut'
+            print(missatge)
+            return jsonify(missatges), 200
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print(err)
+            return jsonify({'error': 'Incorrect user', 'status': 'error'}), 403
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print(err)
+            return jsonify({'error': 'Database does not exist', 'status': 'error'}), 404
+        else:
+            print(err)
+            return jsonify({'error': str(err), 'status': 'error'}), 500
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({'error': str(e), 'status': 'error'}), 500
     
 def databaseconnection():  # Función para conectarse a la base de datosx
     try:
@@ -682,3 +751,4 @@ def databaseconnection():  # Función para conectarse a la base de datosx
         else:
             print(err)  # Imprime cualquier otro error
             cnx.close()  # Cierra la conexión
+
