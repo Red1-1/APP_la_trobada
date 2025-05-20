@@ -1,5 +1,3 @@
-
-
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -32,13 +30,7 @@ android {
         versionName = flutter.versionName
     }
 
-    buildTypes {     
-        release {
-            minifyEnabled true
-            shrinkResources false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-    }
+    // buildTypes block removed because proguard and minification are no longer needed
 }
 
 flutter {
