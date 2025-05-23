@@ -13,6 +13,8 @@ dependencies:
   mysql1: ^0.20.0
   mysql_client: ^0.0.27
   shared_preferences: ^2.5.3
+  socket_io_client: ^2.0.3+1
+  intl: ^0.18.1
 
 dev_dependencies:
   flutter_test:

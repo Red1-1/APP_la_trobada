@@ -15,7 +15,7 @@ class _ForoState extends State<Foro> {
   List<dynamic> _missatges = [];
   String _username = '';
   final TextEditingController _controller = TextEditingController();
-  int _currentIndex = 0;
+  int _currentIndex = 0;  // Foro es index 0
 
   @override
   void initState() {
@@ -71,9 +71,14 @@ class _ForoState extends State<Foro> {
 
   void _onItemTapped(int index) {
     if (index == _currentIndex) return;
-    setState(() => _currentIndex = index);
+
+    setState(() {
+      _currentIndex = index;
+    });
+
     switch (index) {
       case 0:
+        // Estamos en Foro
         break;
       case 1:
         Navigator.pushReplacementNamed(context, '/coleccio');
@@ -86,6 +91,9 @@ class _ForoState extends State<Foro> {
         break;
       case 4:
         Navigator.pushReplacementNamed(context, '/usuari');
+        break;
+      case 5:
+        Navigator.pushReplacementNamed(context, '/Event');
         break;
     }
   }
@@ -173,16 +181,33 @@ class _ForoState extends State<Foro> {
         currentIndex: _currentIndex,
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
-        elevation: 10,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.forum), label: 'Fòrum'),
-          BottomNavigationBarItem(icon: Icon(Icons.collections), label: 'Col·lecció'),
-          BottomNavigationBarItem(icon: Icon(Icons.camera_alt), label: 'Escàner'),
-          BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Xat'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Usuari'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.forum),
+            label: 'Foro',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.collections),
+            label: 'Col·lecció',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.camera_alt),
+            label: 'Escàner',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat),
+            label: 'Xat',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Usuari',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.event),
+            label: 'Events',
+          ),
         ],
       ),
     );

@@ -108,24 +108,28 @@ class _UsuariState extends State<Usuari> {
               Navigator.pushReplacementNamed(context, '/coleccio');
               break;
             case 2:
-              Navigator.pushReplacementNamed(context, '/scanner');
+              Navigator.pushReplacementNamed(context, '/Scanner');
               break;
             case 3:
-              Navigator.pushReplacementNamed(context, '/xat');
+              Navigator.pushReplacementNamed(context, '/Xat');
               break;
             case 4:
-              break; // Ya estamos en Usuari
+              break;
+            case 5:
+              Navigator.pushReplacementNamed(context, '/Event');
+              break;
           }
         },
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.forum), label: 'Fòrum'),
+          BottomNavigationBarItem(icon: Icon(Icons.forum), label: 'Foro'),
           BottomNavigationBarItem(icon: Icon(Icons.collections), label: 'Col·lecció'),
           BottomNavigationBarItem(icon: Icon(Icons.camera_alt), label: 'Escàner'),
           BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Xat'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Usuari'),
+          BottomNavigationBarItem(icon: Icon(Icons.event), label: 'Events'),
         ],
       ),
     );

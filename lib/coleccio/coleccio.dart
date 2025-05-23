@@ -17,6 +17,8 @@ class _ColeccioState extends State<Coleccio> {
   bool _isLoading = true;
   String _errorMessage = '';
   String _username = '';
+  List<dynamic> _cartasColeccion = [];
+  int? _coleccionSeleccionada;
 
   @override
   void initState() {
@@ -45,6 +47,8 @@ class _ColeccioState extends State<Coleccio> {
     setState(() {
       _isLoading = true;
       _errorMessage = '';
+      _coleccionSeleccionada = null;
+      _cartasColeccion = [];
     });
     
     try {
@@ -62,6 +66,43 @@ class _ColeccioState extends State<Coleccio> {
       } else {
         setState(() {
           _errorMessage = jsonDecode(response.body)['error'] ?? 'Error al cargar colecciones';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error de conexión: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _obtenerCartasColeccion(int idColeccion) async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = "";
+    });
+
+    try {
+      final request = http.Request(
+        'GET',
+        Uri.parse('$_api/api/carta/coleccio/mostrar'),
+      )
+        ..headers['Content-Type'] = 'application/json'
+        ..body = jsonEncode({'id_col': idColeccion});
+
+      final response = await http.Client().send(request);
+      final responseBody = await response.stream.bytesToString();
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _cartasColeccion = jsonDecode(responseBody);
+          _coleccionSeleccionada = idColeccion;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = jsonDecode(responseBody)['error'] ?? 'Error al cargar cartas';
           _isLoading = false;
         });
       }
@@ -103,9 +144,8 @@ class _ColeccioState extends State<Coleccio> {
 
   Future<void> _eliminarColeccio(dynamic id) async {
     try {
-      // Verificación y conversión del ID
       final idStr = id.toString();
-      print('Intentando eliminar colección ID: $idStr'); // Debug
+      print('Intentando eliminar colección ID: $idStr');
 
       final response = await http.post(
         Uri.parse('$_api/api/coleccio/eliminar'),
@@ -116,8 +156,8 @@ class _ColeccioState extends State<Coleccio> {
         }),
       );
 
-      print('Respuesta del servidor: ${response.statusCode}'); // Debug
-      print('Cuerpo de respuesta: ${response.body}'); // Debug
+      print('Respuesta del servidor: ${response.statusCode}');
+      print('Cuerpo de respuesta: ${response.body}');
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -139,7 +179,7 @@ class _ColeccioState extends State<Coleccio> {
         );
       }
     } catch (e) {
-      print('Error al eliminar: $e'); // Debug
+      print('Error al eliminar: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error de conexión: ${e.toString()}'),
@@ -183,6 +223,13 @@ class _ColeccioState extends State<Coleccio> {
     );
   }
 
+  void _volverAColecciones() {
+    setState(() {
+      _coleccionSeleccionada = null;
+      _cartasColeccion = [];
+    });
+  }
+
   void _onItemTapped(int index) {
     if (index == _currentIndex) return;
     
@@ -195,6 +242,7 @@ class _ColeccioState extends State<Coleccio> {
         Navigator.pushReplacementNamed(context, '/foro');
         break;
       case 1:
+        // Estamos en Colecció, no hacemos nada
         break;
       case 2:
         Navigator.pushReplacementNamed(context, '/Scanner');
@@ -205,135 +253,161 @@ class _ColeccioState extends State<Coleccio> {
       case 4:
         Navigator.pushReplacementNamed(context, '/usuari');
         break;
+      case 5:
+        Navigator.pushReplacementNamed(context, '/Event'); // Nueva pestaña Eventos
+        break;
     }
+  }
+
+  Widget _buildColeccionesList() {
+    return RefreshIndicator(
+      onRefresh: _carregarColeccions,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Text(
+              'Colección de $_username',
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _coleccions.length,
+                itemBuilder: (context, index) {
+                  final coleccio = _coleccions[index];
+                  return Card(
+                    elevation: 2,
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    child: ListTile(
+                      title: Text(
+                        coleccio['nombre'],
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () async {
+                          await _eliminarColeccio(coleccio['id']);
+                        },
+                      ),
+                      onTap: () => _obtenerCartasColeccion(coleccio['id']),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCartasList() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: _volverAColecciones,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                _coleccions.firstWhere((c) => c['id'] == _coleccionSeleccionada)['nombre'],
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _cartasColeccion.isEmpty
+              ? const Center(child: Text('No hay cartas en esta colección'))
+              : GridView.builder(
+                  padding: const EdgeInsets.all(8),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 0.7,
+                  ),
+                  itemCount: _cartasColeccion.length,
+                  itemBuilder: (context, index) {
+                    final carta = _cartasColeccion[index];
+                    return Card(
+                      elevation: 4,
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: carta['imatge'] != null
+                                ? Image.network(
+                                    carta['imatge'],
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Icon(Icons.broken_image, size: 50);
+                                    },
+                                  )
+                                : const Icon(Icons.credit_card, size: 50),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              carta['nom'] ?? 'Sin nombre',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('La Meva Col·lecció'),
+        title: Text(_coleccionSeleccionada == null 
+            ? 'La Meva Col·lecció' 
+            : 'Cartes de la Col·lecció'),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: _username.isNotEmpty ? _mostrarDialogCrearColeccio : null,
-          ),
+          if (_coleccionSeleccionada == null && _username.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: _mostrarDialogCrearColeccio,
+            ),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage.isNotEmpty
               ? Center(child: Text(_errorMessage))
-              : _coleccions.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text('No tienes colecciones creadas'),
-                          if (_username.isEmpty)
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.pushReplacementNamed(context, '/login');
-                              },
-                              child: const Text('Iniciar sesión'),
-                            )
-                        ],
-                      ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _carregarColeccions,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          children: [
-                            Text(
-                              'Colección de $_username',
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            Expanded(
-                              child: GridView.builder(
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 10,
-                                  mainAxisSpacing: 10,
-                                  childAspectRatio: 0.8,
-                                ),
-                                itemCount: _coleccions.length,
-                                itemBuilder: (context, index) {
-                                  final coleccio = _coleccions[index];
-                                  return Card(
-                                    elevation: 4,
-                                    child: Stack(
-                                      children: [
-                                        Column(
-                                          children: [
-                                            Expanded(
-                                              child: Container(
-                                                color: Colors.grey[200],
-                                                child: Icon(
-                                                  Icons.collections,
-                                                  size: 50,
-                                                  color: Colors.grey[600],
-                                                ),
-                                              ),
-                                            ),
-                                            Padding(
-                                              padding: const EdgeInsets.all(8.0),
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    coleccio['nombre'],
-                                                    style: const TextStyle(
-                                                      fontWeight: FontWeight.bold,
-                                                      fontSize: 16,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        Positioned(
-                                          top: 5,
-                                          right: 5,
-                                          child: IconButton(
-                                            icon: const Icon(Icons.delete),
-                                            color: Colors.red,
-                                            onPressed: () async {
-                                              await _eliminarColeccio(coleccio['id']);
-                                            },
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-      floatingActionButton: _username.isNotEmpty
-          ? FloatingActionButton(
-              onPressed: _mostrarDialogCrearColeccio,
-              child: const Icon(Icons.add),
-            )
-          : null,
+              : (_coleccionSeleccionada == null ? _buildColeccionesList() : _buildCartasList()),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.forum),
-            label: 'Fòrum',
+            label: 'Foro',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.collections),
@@ -351,9 +425,11 @@ class _ColeccioState extends State<Coleccio> {
             icon: Icon(Icons.person),
             label: 'Usuari',
           ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.event),
+            label: 'Events',
+          ),
         ],
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
       ),
     );
   }

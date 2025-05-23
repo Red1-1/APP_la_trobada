@@ -15,7 +15,7 @@ class _ScannerState extends State<Scanner> {
   List<dynamic> _cartes = [];
   bool _isLoading = false;
   String? _errorMessage;
-  int _currentIndex = 2;
+  int _currentIndex = 2;  // Scanner is index 2
   String? _selectedColeccion;
   String _username = '';
   List<dynamic> _coleccions = [];
@@ -44,7 +44,7 @@ class _ScannerState extends State<Scanner> {
     setState(() {
       _loadingColeccions = true;
     });
-    
+
     try {
       final response = await http.post(
         Uri.parse('http://10.100.3.25:5000/api/coleccio/mostrar'),
@@ -96,7 +96,7 @@ class _ScannerState extends State<Scanner> {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(body),
       );
-      
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data is List) {
@@ -154,7 +154,7 @@ class _ScannerState extends State<Scanner> {
           const SnackBar(
             content: Text('Carta añadida correctamente'),
             backgroundColor: Colors.green,
-          )
+          ),
         );
       } else {
         final error = jsonDecode(response.body)['error'] ?? 'Error desconocido';
@@ -162,7 +162,7 @@ class _ScannerState extends State<Scanner> {
           SnackBar(
             content: Text('Error: $error'),
             backgroundColor: Colors.red,
-          )
+          ),
         );
       }
     } catch (e) {
@@ -170,7 +170,7 @@ class _ScannerState extends State<Scanner> {
         SnackBar(
           content: Text('Error de conexión: $e'),
           backgroundColor: Colors.red,
-        )
+        ),
       );
     }
   }
@@ -180,7 +180,7 @@ class _ScannerState extends State<Scanner> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Debes iniciar sesión para añadir cartas a colecciones'),
-        )
+        ),
       );
       return;
     }
@@ -189,7 +189,7 @@ class _ScannerState extends State<Scanner> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('No tienes colecciones creadas'),
-        )
+        ),
       );
       return;
     }
@@ -264,12 +264,16 @@ class _ScannerState extends State<Scanner> {
         Navigator.pushReplacementNamed(context, '/coleccio');
         break;
       case 2:
+        // Estamos en Scanner
         break;
       case 3:
         Navigator.pushReplacementNamed(context, '/Xat');
         break;
       case 4:
         Navigator.pushReplacementNamed(context, '/usuari');
+        break;
+      case 5:
+        Navigator.pushReplacementNamed(context, '/Event'); // pestaña Eventos
         break;
     }
   }
@@ -341,7 +345,7 @@ class _ScannerState extends State<Scanner> {
                                     value: coleccion['nombre'],
                                     child: Text(coleccion['nombre']),
                                   );
-                                }).toList(),
+                                }),
                               ];
                             },
                           ),
@@ -414,7 +418,7 @@ class _ScannerState extends State<Scanner> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.forum),
-            label: 'Fòrum',
+            label: 'Foro',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.collections),
@@ -431,6 +435,10 @@ class _ScannerState extends State<Scanner> {
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Usuari',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.event),
+            label: 'Events',
           ),
         ],
       ),
